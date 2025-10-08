@@ -7,7 +7,7 @@ const AboutPage = () => {
             name: 'Mankirat Kaur',
             role: 'Developer',
             image: '👩‍💼',
-            bio: 'Former tech executive with 15+ years of experience in talent acquisition and HR technology.',
+            bio: 'Frontend developer with a passion for creating user-friendly interfaces and experiences.',
             linkedin: '#'
         },
         {
@@ -15,7 +15,7 @@ const AboutPage = () => {
             name: 'Khushi Arora',
             role: 'Software Engineer',
             image: '👨‍💻',
-            bio: 'Full-stack developer and technology leader passionate about building scalable solutions.',
+            bio: 'Backend developer and technology leader passionate about building scalable solutions.',
             linkedin: '#'
         },
        

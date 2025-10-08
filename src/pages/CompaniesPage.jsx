@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { StarIcon, LocationIcon } from '../components/icons';
 
-const CompaniesPage = () => {
+const CompaniesPage = ({ onViewJobs }) => {
     const [selectedIndustry, setSelectedIndustry] = useState('all');
     const [selectedLocation, setSelectedLocation] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
@@ -240,7 +240,9 @@ const CompaniesPage = () => {
                                 </div>
                             </div>
                             
-                            <button className="w-full bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-700 transition duration-300">
+                            <button 
+                                onClick={() => onViewJobs(company.name)}
+                                className="w-full bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-700 transition duration-300">
                                 View Jobs
                             </button>
                         </div>
@@ -258,4 +260,4 @@ const CompaniesPage = () => {
     );
 };
 
-export default CompaniesPage; 
+export default CompaniesPage;

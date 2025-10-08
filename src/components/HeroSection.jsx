@@ -1,9 +1,40 @@
 import React, { useState } from 'react';
 import { UploadIcon } from './icons';
 
-const HeroSection = () => {
+const HeroSection = ({ onSearch }) => {
+    const [searchTerm, setSearchTerm] = useState('');
+    const [location, setLocation] = useState('');
     const [uploadedResume, setUploadedResume] = useState(null);
     const [resumeName, setResumeName] = useState('');
+
+    const handleSearch = () => {
+        if (onSearch) {
+            onSearch(searchTerm, location);
+        }
+    };
+
+    // Suggestions for the datalist autocomplete
+    const jobSuggestions = [
+        'Software Engineer',
+        'Product Manager',
+        'UX Designer',
+        'Data Scientist',
+        'AI Research Scientist',
+        'Registered Nurse',
+        'Investment Banking Analyst',
+        'Content Marketing Specialist',
+        'E-commerce Manager',
+        'Robotics Engineer',
+    ];
+
+    const locationSuggestions = [
+        'New York, NY',
+        'San Francisco, CA',
+        'Remote',
+        'Austin, TX',
+        'Seattle, WA',
+        'Detroit, MI',
+    ];
 
     const handleResumeUpload = () => {
 
@@ -36,10 +67,65 @@ const HeroSection = () => {
             <div className="container mx-auto px-6 text-center">
                 <h1 className="text-4xl md:text-5xl font-extrabold text-gray-800 mb-4">Find Your Next Career Move</h1>
                 <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">The best place to discover job opportunities and get insights from real employees.</p>
-                <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-4 flex flex-col md:flex-row items-center gap-2">
-                    <input type="text" placeholder="Job title, keywords, or company" className="flex-grow w-full md:w-auto p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
-                    <input type="text" placeholder="City or remote" className="w-full md:w-auto p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
-                    <button className="w-full md:w-auto bg-indigo-600 text-white px-6 py-3 rounded-md hover:bg-indigo-700 transition duration-300 font-semibold">Search Jobs</button>
+                <div className="max-w-3xl mx-auto bg-white rounded-lg shadow-lg p-4 flex flex-col md:flex-row items-center gap-2">
+                    <input
+                        type="text"
+                        placeholder="Job title, keywords, or company"
+                        className="flex-grow w-full md:w-auto p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                        value={searchTerm}
+                        list="job-suggestions"
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                    <datalist id="job-suggestions">
+                        {jobSuggestions.map(job => <option key={job} value={job} />)}
+                    </datalist>
+                    <input
+                        type="text"
+                        placeholder="City or remote"
+                        className="w-full md:w-1/2 p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                        value={location}
+                        list="location-suggestions"
+                        onChange={(e) => setLocation(e.target.value)}
+                    />
+                    <datalist id="location-suggestions">
+                        {locationSuggestions.map(loc => <option key={loc} value={loc} />)}
+                    </datalist>
+                    <button
+                        onClick={handleSearch}
+                        className="w-full md:w-auto bg-indigo-600 text-white px-6 py-1 rounded-md hover:bg-indigo-700 transition duration-300 font-semibold"
+                        aria-label="Search for jobs"
+                    >
+                        Search Jobs
+                    </button>
+                </div>
+                <div className="mt-6 text-sm text-gray-600">
+                    <div className="flex justify-center items-center gap-2 flex-wrap">
+                        <span className="font-semibold">Popular Jobs:</span>
+                        {['Software Engineer', 'Product Manager', 'UX Designer', 'Data Scientist'].map(job => (
+                            <button
+                                key={job}
+                                onClick={() => { setSearchTerm(job); onSearch(job, location); }}
+                                className="bg-gray-200 text-gray-700 px-3 py-1 rounded-full hover:bg-indigo-200 transition"
+                            >
+                                {job}
+                            </button>
+                        ))}
+                    </div>
+                    <div className="flex justify-center items-center gap-2 mt-2 flex-wrap">
+                        <span className="font-semibold">Popular Locations:</span>
+                        {['New York', 'San Francisco', 'Remote', 'Austin'].map(loc => (
+                            <button
+                                key={loc}
+                                onClick={() => {
+                                    setLocation(loc);
+                                    onSearch(searchTerm, loc); // Pass both searchTerm and the new location
+                                }}
+                                className="bg-gray-200 text-gray-700 px-3 py-1 rounded-full hover:bg-indigo-200 transition"
+                            >
+                                {loc}
+                            </button>
+                        ))}
+                    </div>
                 </div>
                 <div className="mt-8">
                     {!uploadedResume ? (

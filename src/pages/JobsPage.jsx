@@ -1,10 +1,83 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { LocationIcon, StarIcon } from '../components/icons';
+import JobDetails from '../components/JobDetails';
+import ApplicationForm from '../components/ApplicationForm';
+import CreateJobForm from '../components/CreateJobForm';
+import { JobContext } from '../context/JobContext';
+import { AuthContext } from '../context/AuthContext';
+import fallbackJobs from '../data/fallbackJobs';
 
-const JobsPage = () => {
+const JobsPage = ({ companyFilter, initialFilters }) => {
     const [selectedCategory, setSelectedCategory] = useState('all');
-    const [selectedLocation, setSelectedLocation] = useState('all');
-    const [searchTerm, setSearchTerm] = useState('');
+    // Initialize state from props
+    const [selectedLocation, setSelectedLocation] = useState(initialFilters?.location || 'all'); // This is for the sidebar filter
+    const [activeSearchTerm, setActiveSearchTerm] = useState(companyFilter || initialFilters?.term || '');
+    const [searchTerm, setSearchTerm] = useState(companyFilter || initialFilters?.term || '');
+    const [selectedJobId, setSelectedJobId] = useState(null);
+    const [showApplicationForm, setShowApplicationForm] = useState(false);
+    const [showCreateForm, setShowCreateForm] = useState(false);
+    
+    const { jobs, loading, error, getJobs } = useContext(JobContext);
+    const { isAuthenticated } = useContext(AuthContext);
+    
+    useEffect(() => {
+        // Set search term from either company filter or hero search
+        // This ensures that if the user navigates back and forth, the filters are reapplied
+        setSearchTerm(companyFilter || initialFilters?.term || '');
+        setActiveSearchTerm(companyFilter || initialFilters?.term || '');
+        setSelectedLocation(initialFilters?.location || 'all');
+    }, [companyFilter, initialFilters]);
+
+    useEffect(() => {
+        getJobs();
+    }, [getJobs]);
+
+    const handleViewDetails = (jobId) => {
+        setSelectedJobId(jobId);
+    };
+
+    const handleCloseDetails = () => {
+        setSelectedJobId(null);
+    };
+
+    const handleApply = (jobId) => {
+        setShowApplicationForm(true);
+    };
+
+    const handleCloseApplication = () => {
+        setShowApplicationForm(false);
+        setSelectedJobId(null);
+    };
+
+    const handleApplicationSuccess = () => {
+        setTimeout(() => {
+            setShowApplicationForm(false);
+            setSelectedJobId(null);
+        }, 2000);
+    };
+
+    const handleCreateJob = () => {
+        setShowCreateForm(true);
+    };
+
+    const handleCloseCreateForm = () => {
+        setShowCreateForm(false);
+    };
+
+    const handleJobCreated = (newJob) => {
+        setJobs([newJob, ...jobs]);
+        setShowCreateForm(false);
+    };
+
+    const handleSearch = () => {
+        setActiveSearchTerm(searchTerm);
+    };
+
+    const handleKeyDown = (e) => {
+        if (e.key === 'Enter') {
+            handleSearch();
+        }
+    };
 
     const jobCategories = [
         { id: 'all', name: 'All Jobs' },
@@ -25,191 +98,201 @@ const JobsPage = () => {
         { id: 'toronto', name: 'Toronto' }
     ];
 
-    const jobs = [
-        {
-            id: 1,
-            title: 'Senior React Developer',
-            company: 'TechCorp Inc.',
-            location: 'San Francisco, CA',
-            type: 'Full-time',
-            salary: '$120k - $150k',
-            category: 'technology',
-            posted: '2 days ago',
-            description: 'We are looking for an experienced React developer to join our team...',
-            rating: 4.5
-        },
-        {
-            id: 2,
-            title: 'UX/UI Designer',
-            company: 'Design Studio',
-            location: 'Remote',
-            type: 'Full-time',
-            salary: '$90k - $110k',
-            category: 'design',
-            posted: '1 day ago',
-            description: 'Join our creative team to design amazing user experiences...',
-            rating: 4.2
-        },
-        {
-            id: 3,
-            title: 'Marketing Manager',
-            company: 'Growth Co.',
-            location: 'New York, NY',
-            type: 'Full-time',
-            salary: '$100k - $130k',
-            category: 'marketing',
-            posted: '3 days ago',
-            description: 'Lead our marketing initiatives and drive growth...',
-            rating: 4.0
-        },
-        {
-            id: 4,
-            title: 'Sales Representative',
-            company: 'SalesForce',
-            location: 'Toronto, ON',
-            type: 'Full-time',
-            salary: '$70k - $90k',
-            category: 'sales',
-            posted: '1 week ago',
-            description: 'Build relationships and drive sales growth...',
-            rating: 3.8
-        },
-        {
-            id: 5,
-            title: 'Financial Analyst',
-            company: 'Finance Corp',
-            location: 'London, UK',
-            type: 'Full-time',
-            salary: '$80k - $100k',
-            category: 'finance',
-            posted: '4 days ago',
-            description: 'Analyze financial data and provide insights...',
-            rating: 4.1
-        },
-        {
-            id: 6,
-            title: 'Nurse Practitioner',
-            company: 'HealthCare Plus',
-            location: 'Remote',
-            type: 'Part-time',
-            salary: '$60k - $80k',
-            category: 'healthcare',
-            posted: '2 weeks ago',
-            description: 'Provide healthcare services remotely...',
-            rating: 4.3
-        }
-    ];
+    // Use fetched jobs, but fall back to hardcoded jobs if the fetched list is empty or null
+    const displayJobs = (jobs && jobs.length > 0) ? jobs : fallbackJobs;
 
-    const filteredJobs = jobs.filter(job => {
-        const matchesCategory = selectedCategory === 'all' || job.category === selectedCategory;
-        const matchesLocation = selectedLocation === 'all' || 
-            (selectedLocation === 'remote' && job.location === 'Remote') ||
-            (selectedLocation !== 'remote' && job.location.toLowerCase().includes(selectedLocation.replace('-', ' ')));
-        const matchesSearch = job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                             job.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                             job.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const filteredJobs = displayJobs ? displayJobs.filter(job => {
+        if (!job) return false;
         
-        return matchesCategory && matchesLocation && matchesSearch;
-    });
+        const matchesCategory = selectedCategory === 'all' || 
+            (job.category && job.category.toLowerCase() === selectedCategory) ||
+            (job.jobType && job.jobType.toLowerCase().replace('-', '') === selectedCategory.replace('-', ''));
+            
+        // Unified Location Filtering
+        // It uses the sidebar filter unless a more specific one came from the initial search.
+        const locationFilterTerm = (initialFilters?.location || selectedLocation || 'all').replace('-', ' ');
+        const matchesLocation = locationFilterTerm === 'all' || 
+            (job.location && job.location.toLowerCase().includes(locationFilterTerm.toLowerCase()));
+
+        // Search term filtering (for title, company, description)
+        const searchTermLower = activeSearchTerm.toLowerCase();
+        const matchesSearchTerm = activeSearchTerm === '' || 
+            (job.title && job.title.toLowerCase().includes(searchTermLower)) ||
+            (job.company && job.company.toLowerCase().includes(searchTermLower)) ||
+            (job.description && job.description.toLowerCase().includes(searchTermLower)) ||
+            // Also check if the search term matches the location
+            (job.location && job.location.toLowerCase().includes(searchTermLower));
+
+        // Combine all filters
+        return matchesCategory && matchesLocation && matchesSearchTerm;
+    }) : [];
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Header Section */}
-            <div className="bg-white shadow-sm">
-                <div className="container mx-auto px-6 py-8">
-                    <h1 className="text-3xl font-bold text-gray-800 mb-2">Find Your Dream Job</h1>
-                    <p className="text-gray-600">Discover thousands of job opportunities with all the information you need</p>
-                </div>
-            </div>
-
-            {/* Search and Filters */}
-            <div className="container mx-auto px-6 py-6">
-                <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <input
-                            type="text"
-                            placeholder="Search jobs, companies..."
-                            className="border border-gray-300 rounded-md px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                        <select
-                            className="border border-gray-300 rounded-md px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                            value={selectedCategory}
-                            onChange={(e) => setSelectedCategory(e.target.value)}
+        <section className="py-16 bg-white">
+            <div className="container mx-auto px-4">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+                    <h1 className="text-3xl font-bold text-gray-800">Find Your Dream Job</h1>
+                    {isAuthenticated && (
+                        <button
+                            onClick={handleCreateJob}
+                            className="mt-4 md:mt-0 bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition duration-300"
                         >
-                            {jobCategories.map(category => (
-                                <option key={category.id} value={category.id}>
-                                    {category.name}
-                                </option>
-                            ))}
-                        </select>
-                        <select
-                            className="border border-gray-300 rounded-md px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                            value={selectedLocation}
-                            onChange={(e) => setSelectedLocation(e.target.value)}
-                        >
-                            {locations.map(location => (
-                                <option key={location.id} value={location.id}>
-                                    {location.name}
-                                </option>
-                            ))}
-                        </select>
-                        <button className="bg-indigo-600 text-white px-6 py-2 rounded-md hover:bg-indigo-700 transition duration-300">
-                            Search Jobs
+                            Post a New Job
                         </button>
-                    </div>
+                    )}
                 </div>
-
-                {/* Results Count */}
-                <div className="mb-4">
-                    <p className="text-gray-600">
-                        Showing {filteredJobs.length} of {jobs.length} jobs
-                    </p>
-                </div>
-
-                {/* Job Listings */}
-                <div className="space-y-4">
-                    {filteredJobs.map(job => (
-                        <div key={job.id} className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition duration-300">
-                            <div className="flex justify-between items-start">
-                                <div className="flex-1">
-                                    <h3 className="text-xl font-semibold text-gray-800 mb-2">{job.title}</h3>
-                                    <p className="text-indigo-600 font-medium mb-2">{job.company}</p>
-                                    <div className="flex items-center text-gray-600 mb-3">
-                                        <LocationIcon />
-                                        <span>{job.location}</span>
-                                        <span className="mx-2">•</span>
-                                        <span>{job.type}</span>
-                                        <span className="mx-2">•</span>
-                                        <span>{job.posted}</span>
-                                    </div>
-                                    <p className="text-gray-700 mb-3">{job.description}</p>
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-green-600 font-semibold">{job.salary}</span>
-                                        <div className="flex items-center">
-                                            <StarIcon filled={true} />
-                                            <span className="ml-1 text-gray-600">{job.rating}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <button className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition duration-300 ml-4">
-                                    Apply Now
-                                </button>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-
-                {filteredJobs.length === 0 && (
-                    <div className="text-center py-12">
-                        <p className="text-gray-500 text-lg">No jobs found matching your criteria.</p>
-                        <p className="text-gray-400">Try adjusting your search or filters.</p>
+                
+                {error && (
+                    <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6">
+                        <p>{error}</p>
                     </div>
                 )}
+                
+                {/* Search Bar */}
+                <div className="mb-8">
+  <div className="flex gap-2">
+    <input
+      type="text"
+      placeholder="Search jobs..."
+      className="flex-grow p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+      value={searchTerm}
+      onKeyDown={handleKeyDown}
+      onChange={(e) => setSearchTerm(e.target.value)}
+    />
+    <button 
+      onClick={handleSearch}
+      className="bg-indigo-600 text-white px-6 py-2 rounded-md hover:bg-indigo-700 transition duration-300"
+    >
+      Search
+    </button>
+  </div>
+</div>
+                {loading && jobs.length === 0 ? (
+                    <div className="flex justify-center items-center h-64">
+                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+                    </div>
+                ) : (
+                    <div className="flex flex-col lg:flex-row gap-8">
+                        {/* Filters Sidebar */}
+                        <div className="lg:w-1/4">
+                            <div className="bg-gray-50 p-6 rounded-lg shadow-sm">
+                                <h3 className="text-lg font-semibold text-gray-800 mb-4">Categories</h3>
+                                <ul className="space-y-2">
+                                    {jobCategories.map(category => (
+                                        <li key={category.id}>
+                                            <button
+                                                className={`w-full text-left px-3 py-2 rounded-md ${selectedCategory === category.id ? 'bg-indigo-100 text-indigo-700' : 'hover:bg-gray-100'}`}
+                                                onClick={() => setSelectedCategory(category.id)}
+                                            >
+                                                {category.name}
+                                            </button>
+                                        </li>
+                                    ))}
+                                </ul>
+                                
+                                <h3 className="text-lg font-semibold text-gray-800 mt-8 mb-4">Locations</h3>
+                                <ul className="space-y-2">
+                                    {locations.map(location => (
+                                        <li key={location.id}>
+                                            <button
+                                                className={`w-full text-left px-3 py-2 rounded-md ${selectedLocation === location.id ? 'bg-indigo-100 text-indigo-700' : 'hover:bg-gray-100'}`}
+                                                onClick={() => setSelectedLocation(location.id)}
+                                            >
+                                                {location.name}
+                                            </button>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        {/* Job Listings */}
+                        <div className="lg:w-3/4">
+                            <div className="mb-6 flex justify-between items-center">
+                                <h2 className="text-xl font-semibold text-gray-800">
+                                    {filteredJobs.length} {filteredJobs.length === 1 ? 'Job' : 'Jobs'} Found
+                                </h2>
+                                <div className="text-gray-500">
+                                    Sort by: <span className="text-indigo-600 font-medium">Newest</span>
+                                </div>
+                            </div>
+                            
+                            {filteredJobs.length === 0 ? (
+                                <div className="bg-gray-50 p-8 rounded-lg text-center">
+                                    <h3 className="text-xl text-gray-600">No jobs found matching your criteria</h3>
+                                    <p className="mt-2 text-gray-500">Try adjusting your search or filters</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-6">
+                                    {filteredJobs.map(job => (
+                                        <div key={job._id || job.id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 p-6 border border-gray-200">
+                                            <div className="flex justify-between">
+                                                <div>
+                                                    <h3 className="text-xl font-bold text-gray-800">{job.title}</h3>
+                                                    <p className="text-indigo-600 font-semibold">{job.company}</p>
+                                                    <div className="flex items-center text-gray-500 mt-2">
+                                                        <LocationIcon />
+                                                        <span className="ml-1">{job.location}</span>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <span className={`inline-block px-3 py-1 text-sm rounded-full ${(job.jobType || job.type) === 'Full-time' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                                                        {job.jobType || job.type || 'Full-time'}
+                                                    </span>
+                                                    {job.rating && (
+                                                        <div className="mt-2 flex items-center justify-end">
+                                                            <StarIcon />
+                                                            <span className="ml-1 text-gray-700">{job.rating}</span>
+                                                        </div>
+                                                    )}
+                                                    {job.posted && (
+                                                        <div className="mt-1 text-sm text-gray-500">Posted {job.posted}</div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <p className="text-gray-600 mt-4">{job.description}</p>
+                                            <div className="mt-4 flex justify-between items-center">
+                                                <span className="text-gray-700 font-medium">{job.salary || 'Salary not specified'}</span>
+                                                <button 
+                                                    onClick={() => handleViewDetails(job._id || job.id)}
+                                                    className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition duration-300"
+                                                >
+                                                    View Details
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+                
+                {selectedJobId && !showApplicationForm && (
+                    <JobDetails 
+                        jobId={selectedJobId} 
+                        onClose={handleCloseDetails}
+                        onApply={handleApply}
+                    />
+                )}
+
+                {showApplicationForm && (
+                    <ApplicationForm 
+                        jobId={selectedJobId}
+                        onClose={handleCloseApplication}
+                        onSuccess={handleApplicationSuccess}
+                    />
+                )}
+
+                {showCreateForm && (
+                    <CreateJobForm 
+                        onClose={handleCloseCreateForm}
+                        onSuccess={handleJobCreated}
+                    />
+                )}
             </div>
-        </div>
+        </section>
     );
 };
 
-export default JobsPage; 
+export default JobsPage;
